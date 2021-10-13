@@ -5,6 +5,7 @@ import json
 from flask import Flask
 from flask import request
 from flask import jsonify
+from flask import Markup
 from flask_cors import CORS, cross_origin
 
 app = Flask(__name__)
@@ -86,6 +87,48 @@ def admin_book():
         json.dump(booked, f)
 
     return jsonify(0, "ok")
+
+@app.route("/admin/getPrintable")
+def admin_getPrintable():
+    if (not 'password' in request.args) or (request.args['password'] != options['password']): return "bad password"
+    
+    with open('booked.json', "r", encoding="utf-8") as f:
+        booked = json.load(f)
+
+    toReturn = ""
+
+    # Add heading
+    toReturn += "<tr>"
+    for x in ("Plats", "Namn", "Tel"):
+        toReturn += "<th>%s</th>" % x
+    toReturn += "</tr>"
+
+    # Add content
+    for key in booked:
+        if booked[key] == "":continue
+
+        toReturn += "<tr>"
+        if type(booked[key]) == str:
+            toReturn += "<th>%s</th>" % key
+            toReturn += "<th>%s</th>" % booked[key]
+        elif type(booked[key]) == dict:
+            toReturn += "<th>%s</th>" % key
+            for x in ("name", "phoneNumber"):
+                toReturn += "<th>%s</th>" % booked[key][x]
+        else:pass
+        toReturn += "</tr>"
+
+    return Markup(""" 
+        <style>
+
+        table, th, td {
+            border:1px solid black;
+        }
+
+        </style>
+
+        <table id="table">%s</table>
+    """ % toReturn)
 
 if __name__ == "__main__":
     # Set working dir to path of main.py
