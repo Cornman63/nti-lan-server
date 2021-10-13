@@ -6,14 +6,14 @@ from flask import Flask
 from flask import request
 from flask import jsonify
 from flask import Markup
+from flask import render_template
 from flask_cors import CORS, cross_origin
 
 app = Flask(__name__)
 CORS(app, support_credentials=True)
 
 @app.route("/")
-def root():
-    return "root ok"
+def root(): return "root is ok"
 
 # User roots
 @app.route("/book")
@@ -91,49 +91,33 @@ def admin_book():
 @app.route("/admin/getPrintable")
 def admin_getPrintable():
     if (not 'password' in request.args) or (request.args['password'] != options['password']): return "bad password"
-    
+
     with open('booked.json', "r", encoding="utf-8") as f:
         booked = json.load(f)
 
     toReturn = ""
-
-    # Add heading
-    toReturn += "<tr>"
-    for x in ("Plats", "Namn", "Tel"):
-        toReturn += "<th>%s</th>" % x
-    toReturn += "</tr>"
-
-    # Add content
     for key in booked:
         if booked[key] == "":continue
 
         toReturn += "<tr>"
         if type(booked[key]) == str:
-            toReturn += "<th>%s</th>" % key
-            toReturn += "<th>%s</th>" % booked[key]
+            toReturn += "<td>%s</td>" % key
+            toReturn += "<td>%s</td>" % booked[key]
+            toReturn += "<td></td>"
         elif type(booked[key]) == dict:
-            toReturn += "<th>%s</th>" % key
+            toReturn += "<td>%s</td>" % key
             for x in ("name", "phoneNumber"):
-                toReturn += "<th>%s</th>" % booked[key][x]
+                toReturn += "<td>%s</td>" % booked[key][x]
         else:pass
         toReturn += "</tr>"
-
-    return Markup(""" 
-        <style>
-
-        table, th, td {
-            border:1px solid black;
-        }
-
-        </style>
-
-        <table id="table">%s</table>
-    """ % toReturn)
+    
+    return render_template("getPrintable.html", tableData=Markup(toReturn))
 
 if __name__ == "__main__":
     # Set working dir to path of main.py
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
+    # Create options.json and booked.json if they dont exist
     if not os.path.isfile("options.json"):
         with open("options.json", "w") as f:
             json.dump(
@@ -154,9 +138,11 @@ if __name__ == "__main__":
             
             json.dump(data, f)
 
+    # Load settings.json
     with open('options.json', "r", encoding="utf-8") as f:
         options = json.load(f)
 
+    # Start Flask
     app.run(
         host=options['host'],
         port=options['port'],
